@@ -24,3 +24,6 @@ buildNumber.properties
 *.ear
 
 *.class
+src/main/resources/static/
+src/main/webapp/
+src/test/
