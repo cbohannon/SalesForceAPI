@@ -12,10 +12,10 @@ class ProtocolBuilder {
                     String consumerSecret, String userName, String password) {
         // Assemble the login request URL
         String uri = loginURL + grantService + "&client_id="
-                + consumerKey + "&client_secret="
-                + consumerSecret + "&username="
-                + userName + "&password="
-                + password;
+                              + consumerKey + "&client_secret="
+                              + consumerSecret + "&username="
+                              + userName + "&password="
+                              + password;
 
         // Login requests must be a POST method
         httpclient = HttpClientBuilder.create().build();

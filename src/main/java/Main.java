@@ -23,6 +23,14 @@ public class Main {
         Resource resource = new Resource();
         resource.Login(protocolBuilder);
 
+        if (resource.exitValue == 0) {
+            // Query (REST GET) some leads
+            resource.queryLeads();
+        }
+
+        // Release the connection
+        protocolBuilder.httpPost.releaseConnection();
+
         System.exit(resource.exitValue);
     }
 
