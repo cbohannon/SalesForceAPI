@@ -6,10 +6,12 @@ import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
+
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -21,8 +23,9 @@ import java.io.InputStreamReader;
 class Resource {
     int exitValue = 0;
 
-    private String REST_ENDPOINT = "/services/data" ;
-    private String API_VERSION = "/v32.0" ;
+    private static final String REST_ENDPOINT = "/services/data" ;
+    private static final String API_VERSION = "/v32.0" ;
+
     private String baseUri;
     private String leadId ;
     private String leadFirstName;
@@ -115,7 +118,7 @@ class Resource {
                 }
             } else {
                 logger.info("Query was unsuccessful. Status code returned is " + statusCode);
-                logger.info("An error has occured. Http status: " + httpResponse.getStatusLine().getStatusCode());
+                logger.info("An error has occurred. Http status: " + httpResponse.getStatusLine().getStatusCode());
                 logger.info(getBody(httpResponse.getEntity().getContent()));
                 return exitValue = -1;
             }
@@ -129,10 +132,9 @@ class Resource {
     private static String getBody(InputStream inputStream) {
         String result = "";
         try {
-            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream)
-            );
+            BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
             String inputLine;
-            while ( (inputLine = bufferedReader.readLine() ) != null ) {
+            while ((inputLine = bufferedReader.readLine()) != null) {
                 result += inputLine;
                 result += "\n";
             }
