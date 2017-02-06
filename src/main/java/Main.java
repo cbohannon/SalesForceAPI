@@ -24,8 +24,10 @@ public class Main {
         resource.Login(protocolBuilder);
 
         if (resource.exitValue == 0) {
-            // Query (REST GET) some leads
             resource.queryLeads();
+            resource.createNewLead();
+            resource.updateLead();
+            resource.deleteLead();
         }
 
         // Release the connection

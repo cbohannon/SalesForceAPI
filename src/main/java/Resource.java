@@ -2,16 +2,18 @@ import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.HttpStatus;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
+import org.apache.http.client.methods.HttpPatch;
+import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.message.BasicHeader;
 import org.apache.http.util.EntityUtils;
-
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 import org.json.JSONTokener;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -28,9 +30,6 @@ class Resource {
 
     private String baseUri;
     private String leadId ;
-    private String leadFirstName;
-    private String leadLastName;
-    private String leadCompany;
 
     private Header oauthHeader;
     private Header prettyPrintHeader = new BasicHeader("X-PrettyPrint", "1");
@@ -108,9 +107,9 @@ class Resource {
                     JSONArray jsonArray = jsonObject.getJSONArray("records");
                     for (int i = 0; i < jsonArray.length(); i ++){
                         leadId = jsonObject.getJSONArray("records").getJSONObject(i).getString("Id");
-                        leadFirstName = jsonObject.getJSONArray("records").getJSONObject(i).getString("FirstName");
-                        leadLastName = jsonObject.getJSONArray("records").getJSONObject(i).getString("LastName");
-                        leadCompany = jsonObject.getJSONArray("records").getJSONObject(i).getString("Company");
+                        String leadFirstName = jsonObject.getJSONArray("records").getJSONObject(i).getString("FirstName");
+                        String leadLastName = jsonObject.getJSONArray("records").getJSONObject(i).getString("LastName");
+                        String leadCompany = jsonObject.getJSONArray("records").getJSONObject(i).getString("Company");
                         logger.info("Lead record is: " + i + ". " + leadId + " " + leadFirstName + " " + leadLastName + "(" + leadCompany + ")");
                     }
                 } catch (JSONException je) {
@@ -129,7 +128,136 @@ class Resource {
         return exitValue;
     }
 
-    private static String getBody(InputStream inputStream) {
+    // Create lead using REST HttpPost
+    int createNewLead() {
+        String uri = baseUri + "/sobjects/Lead/";
+
+        try {
+            // Create the JSON object containing the new lead details.
+            JSONObject leadJsonObject = new JSONObject();
+            leadJsonObject.put("FirstName", "Test First");
+            leadJsonObject.put("LastName", "Test Last");
+            leadJsonObject.put("Company", "Test Company");
+            leadJsonObject.put("Email", "test@test.com");
+            leadJsonObject.put("State", "TX");
+
+            logger.info("JSON for lead record to be inserted:\n" + leadJsonObject.toString(1));
+
+            // Construct the objects needed for the request
+            HttpClient httpClient = HttpClientBuilder.create().build();
+
+            HttpPost httpPost = new HttpPost(uri);
+            httpPost.addHeader(oauthHeader);
+            httpPost.addHeader(prettyPrintHeader);
+            // The message we are going to post
+            StringEntity body = new StringEntity(leadJsonObject.toString(1));
+            body.setContentType("application/json");
+            httpPost.setEntity(body);
+
+            // Make the request
+            HttpResponse httpResponse = httpClient.execute(httpPost);
+
+            // Process the results
+            int statusCode = httpResponse.getStatusLine().getStatusCode();
+            if (statusCode == 201) {
+                String responseString = EntityUtils.toString(httpResponse.getEntity());
+                JSONObject jsonResponseString = new JSONObject(responseString);
+                // Store the retrieved lead id to use when we update the lead
+                leadId = jsonResponseString.getString("id");
+                logger.info("New Lead id from response: " + leadId);
+            } else {
+                logger.info("Insertion unsuccessful. Status code returned is " + statusCode);
+                return exitValue = -1;
+            }
+        } catch (JSONException e) {
+            logger.info("Issue creating JSON or processing results");
+            e.printStackTrace();
+        } catch (IOException | NullPointerException ioe) {
+            ioe.printStackTrace();
+        }
+
+        return exitValue;
+    }
+
+    // Update lead using REST httpPatch
+    int updateLead() {
+        logger.info("\n_______________ Lead UPDATE _______________");
+
+        // The id for the record to update is part of the URI and not part of the JSON
+        String uri = baseUri + "/sobjects/Lead/" + leadId;
+        try {
+            // Create the JSON object containing the updated lead last name and the id of the lead we are updating.
+            JSONObject leadJsonObject = new JSONObject();
+            leadJsonObject.put("LastName", "Lead --UPDATED");
+            logger.info("JSON for update of lead record:\n" + leadJsonObject.toString(1));
+
+            // Set up the objects necessary to make the request.
+            HttpClient httpClient = HttpClientBuilder.create().build();
+
+            HttpPatch httpPatch = new HttpPatch(uri);
+            httpPatch.addHeader(oauthHeader);
+            httpPatch.addHeader(prettyPrintHeader);
+            StringEntity body = new StringEntity(leadJsonObject.toString(1));
+            body.setContentType("application/json");
+            httpPatch.setEntity(body);
+
+            // Make the request
+            HttpResponse httpResponse = httpClient.execute(httpPatch);
+
+            // Process the response
+            int statusCode = httpResponse.getStatusLine().getStatusCode();
+            if (statusCode == 204) {
+                logger.info("Updated the lead successfully.");
+            } else {
+                logger.info("Lead update NOT successfully. Status code is " + statusCode);
+                return exitValue = -1;
+            }
+        } catch (JSONException e) {
+            logger.info("Issue creating JSON or processing results");
+            e.printStackTrace();
+        } catch (IOException | NullPointerException ioe) {
+            ioe.printStackTrace();
+        }
+
+        return exitValue;
+    }
+
+    // Delete lead using REST httpDelete
+    int deleteLead() {
+        System.out.println("\n_______________ Lead DELETE _______________");
+
+        // The id for the record to update is part of the URI and not part of the JSON
+        String uri = baseUri + "/sobjects/Lead/" + leadId;
+        try {
+            // Set up the objects necessary to make the request.
+            HttpClient httpClient = HttpClientBuilder.create().build();
+
+            HttpDelete httpDelete = new HttpDelete(uri);
+            httpDelete.addHeader(oauthHeader);
+            httpDelete.addHeader(prettyPrintHeader);
+
+            // Make the request
+            HttpResponse httpResponse = httpClient.execute(httpDelete);
+
+            // Process the response
+            int statusCode = httpResponse.getStatusLine().getStatusCode();
+            if (statusCode == 204) {
+                logger.info("Deleted the lead successfully.");
+            } else {
+                logger.info("Lead delete NOT successful. Status code is " + statusCode);
+                return exitValue = -1;
+            }
+        } catch (JSONException e) {
+            logger.info("Issue creating JSON or processing results");
+            e.printStackTrace();
+        } catch (IOException | NullPointerException ioe) {
+            ioe.printStackTrace();
+        }
+
+        return exitValue;
+    }
+
+    private String getBody(InputStream inputStream) {
         String result = "";
         try {
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
