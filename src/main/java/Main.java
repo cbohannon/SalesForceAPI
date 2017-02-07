@@ -21,13 +21,14 @@ public class Main {
         }
 
         Resource resource = new Resource();
-        resource.Login(protocolBuilder);
+        resource.login(protocolBuilder);
 
         if (resource.exitValue == 0) {
             resource.queryLeads();
             resource.createNewLead();
             resource.updateLead();
             resource.deleteLead();
+            resource.logout();
         }
 
         // Release the connection

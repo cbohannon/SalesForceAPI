@@ -17,10 +17,7 @@ import org.json.JSONTokener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
+import java.io.*;
 
 class Resource {
     int exitValue = 0;
@@ -30,13 +27,15 @@ class Resource {
 
     private String baseUri;
     private String leadId ;
+    private String loginAccessToken;
+    private String loginInstanceUrl;
 
     private Header oauthHeader;
-    private Header prettyPrintHeader = new BasicHeader("X-PrettyPrint", "1");
+    private final Header prettyPrintHeader = new BasicHeader("X-PrettyPrint", "1");
 
-    private Logger logger = LoggerFactory.getLogger(Resource.class);
+    private final Logger logger = LoggerFactory.getLogger(Resource.class);
 
-    int Login(ProtocolBuilder protocolBuilder) throws IOException {
+    int login(ProtocolBuilder protocolBuilder) throws IOException {
         // Execute the login POST request
         protocolBuilder.httpResponse = protocolBuilder.httpclient.execute(protocolBuilder.httpPost);
 
@@ -53,8 +52,6 @@ class Resource {
         String getResult = EntityUtils.toString(protocolBuilder.httpResponse.getEntity());
 
         JSONObject jsonObject = new JSONObject();
-        String loginAccessToken = null;
-        String loginInstanceUrl = null;
         try {
             if (getResult != null) {
                 jsonObject = (JSONObject) new JSONTokener(getResult).nextValue();
@@ -71,8 +68,8 @@ class Resource {
         logger.info("oauthHeader1: " + oauthHeader);
         logger.info(protocolBuilder.httpResponse.getStatusLine().toString());
         logger.info("Successful login");
-        logger.info("instance URL: "+loginInstanceUrl);
-        logger.info("access token/session ID: "+loginAccessToken);
+        logger.info("instance URL: " + loginInstanceUrl);
+        logger.info("access token/session ID: " + loginAccessToken);
         logger.info("baseUri: "+ baseUri);
 
         return exitValue;
@@ -224,7 +221,7 @@ class Resource {
 
     // Delete lead using REST httpDelete
     int deleteLead() {
-        System.out.println("\n_______________ Lead DELETE _______________");
+        logger.info("\n_______________ Lead DELETE _______________");
 
         // The id for the record to update is part of the URI and not part of the JSON
         String uri = baseUri + "/sobjects/Lead/" + leadId;
@@ -253,6 +250,56 @@ class Resource {
         } catch (IOException | NullPointerException ioe) {
             ioe.printStackTrace();
         }
+
+        return exitValue;
+    }
+
+    int logout() throws IOException {
+        // Setup the HTTP objects needed to make the request
+        HttpClient httpClient = HttpClientBuilder.create().build();
+
+        String uri = "https://login.salesforce.com/services/oauth2/revoke?token=" + loginAccessToken;
+        HttpGet httpGet = new HttpGet(uri);
+
+        // Make the request
+        HttpResponse httpResponse = httpClient.execute(httpGet);
+
+        // Process the response
+        int statusCode = httpResponse.getStatusLine().getStatusCode();
+        if (statusCode == 200) {
+            logger.info("Logout has been successful.");
+        } else {
+            logger.info("Logout was NOT successful. Status code is " + statusCode);
+            return exitValue = -1;
+        }
+
+        /*
+        String uri = "https://login.salesforce.com/services/oauth2/revoke";
+
+        JSONObject jsonObject = new JSONObject();
+        jsonObject.put("token", loginAccessToken);
+
+        // Construct the objects needed for the request
+        HttpClient httpClient = HttpClientBuilder.create().build();
+
+        HttpPost httpPost = new HttpPost(uri);
+        // The message we are going to post
+        StringEntity body = new StringEntity(jsonObject.toString(1));
+        body.setContentType("application/x-www-form-urlencoded;charset=utf-8");
+        httpPost.setEntity(body);
+
+        // Make the request
+        HttpResponse httpResponse = httpClient.execute(httpPost);
+
+        // Process the response
+        int statusCode = httpResponse.getStatusLine().getStatusCode();
+        if (statusCode == 200) {
+            logger.info("Logout has been successful.");
+        } else {
+            logger.info("Logout was NOT successful. Status code is " + statusCode);
+            return exitValue = -1;
+        }
+        */
 
         return exitValue;
     }
