@@ -4,17 +4,17 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.impl.client.HttpClientBuilder;
 
 class ProtocolBuilder {
-    HttpClient httpclient = null;
-    HttpPost httpPost = null;
-    HttpResponse httpResponse = null;
+    HttpClient httpclient;
+    HttpPost httpPost;
+    HttpResponse httpResponse;
 
     ProtocolBuilder(String loginURL, String grantService, String consumerKey,
                     String consumerSecret, String userName, String password) {
         // Assemble the login request URL
-        String uri = loginURL + grantService + "&client_id="
-                              + consumerKey + "&client_secret="
+        String uri = loginURL + grantService   + "&client_id="
+                              + consumerKey    + "&client_secret="
                               + consumerSecret + "&username="
-                              + userName + "&password="
+                              + userName       + "&password="
                               + password;
 
         // Login requests must be a POST method

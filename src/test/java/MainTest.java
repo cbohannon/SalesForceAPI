@@ -4,6 +4,8 @@ import org.junit.contrib.java.lang.system.ExpectedSystemExit;
 import java.io.InputStream;
 import java.util.Properties;
 
+import static org.hamcrest.CoreMatchers.is;
+
 public class MainTest {
     private static String testUserName;
     private static String testPassword;
@@ -13,6 +15,10 @@ public class MainTest {
     private static String testConsumerSecret;
 
     private InputStream inputStream = null;
+    private Resource resource = null;
+    private ProtocolBuilder protocolBuilder;
+
+    // TODO: This is a fairly clunky way to test and there is only one negative test but it's good enough for now
 
     @Before
     public void setUp() throws Exception {
@@ -26,6 +32,9 @@ public class MainTest {
         testGrantService = properties.getProperty("TESTGRANTSERVICE");
         testConsumerKey = properties.getProperty("TESTCONSUMERKEY");
         testConsumerSecret = properties.getProperty("TESTCONSUMERSECRET");
+
+        resource = new Resource();
+        protocolBuilder = new ProtocolBuilder(testLoginUrl, testGrantService, testConsumerKey, testConsumerSecret, testUserName, testPassword);
     }
 
     @Rule
@@ -45,7 +54,22 @@ public class MainTest {
         exit.expectSystemExitWithStatus(-1);
         exit.checkAssertionAfterwards(() -> Assert.assertTrue(true));
 
-        Main.main(new String[]{testLoginUrl, testGrantService, testConsumerKey, testConsumerSecret, testUserName, testPassword});
+        // Use the strings declared above with a bad password for this test
+        Main.main(new String[]{testLoginUrl, testGrantService, testConsumerKey, testConsumerSecret, testUserName, testPassword.toUpperCase()});
+    }
+
+    // TODO: Break this test into individual resource tests
+    @Test
+    public void successfulResourceTest () throws Exception {
+        Assert.assertThat(resource.login(protocolBuilder), is(0));
+
+        Assert.assertThat(resource.queryLeads(), is(0));
+        Assert.assertThat(resource.createNewLead(), is(0));
+        Assert.assertThat(resource.updateLead(), is(0));
+        Assert.assertThat(resource.deleteLead(), is(0));
+        Assert.assertThat(resource.listAvailableResources(), is(0));
+
+        Assert.assertThat(resource.logout(), is(0));
     }
 
     @After

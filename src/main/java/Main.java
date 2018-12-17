@@ -10,7 +10,7 @@ public class Main {
     private static String consumerKey;
     private static String consumerSecret;
 
-    public static void main(String args[]) throws IOException {
+    public static void main(String[] args) throws IOException {
         ProtocolBuilder protocolBuilder;
 
         if (args.length > 0) {
@@ -28,6 +28,7 @@ public class Main {
             resource.createNewLead();
             resource.updateLead();
             resource.deleteLead();
+            resource.listAvailableResources();
             resource.logout();
         }
 
@@ -38,10 +39,8 @@ public class Main {
     }
 
     private static void getProperties() throws IOException {
-        InputStream inputStream = Main.class.getClassLoader().getResourceAsStream("config.properties");
-        Properties properties = new Properties();
-
-        try {
+        try (InputStream inputStream = Main.class.getClassLoader().getResourceAsStream("config.properties")) {
+            Properties properties = new Properties();
             properties.load(inputStream);
             userName = properties.getProperty("USERNAME");
             password = properties.getProperty("PASSWORD");
@@ -49,10 +48,6 @@ public class Main {
             grantService = properties.getProperty("GRANTSERVICE");
             consumerKey = properties.getProperty("CONSUMERKEY");
             consumerSecret = properties.getProperty("CONSUMERSECRET");
-        } finally {
-            if (inputStream != null) {
-                inputStream.close();
-            }
         }
     }
 }

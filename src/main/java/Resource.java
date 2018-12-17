@@ -140,19 +140,7 @@ class Resource {
 
             logger.info("JSON for lead record to be inserted:\n" + leadJsonObject.toString(1));
 
-            // Construct the objects needed for the request
-            HttpClient httpClient = HttpClientBuilder.create().build();
-
-            HttpPost httpPost = new HttpPost(uri);
-            httpPost.addHeader(oauthHeader);
-            httpPost.addHeader(prettyPrintHeader);
-            // The message we are going to post
-            StringEntity body = new StringEntity(leadJsonObject.toString(1));
-            body.setContentType("application/json");
-            httpPost.setEntity(body);
-
-            // Make the request
-            HttpResponse httpResponse = httpClient.execute(httpPost);
+            HttpResponse httpResponse = createOrUpdate(true, uri, leadJsonObject);
 
             // Process the results
             int statusCode = httpResponse.getStatusLine().getStatusCode();
@@ -188,18 +176,7 @@ class Resource {
             leadJsonObject.put("LastName", "Lead --UPDATED");
             logger.info("JSON for update of lead record:\n" + leadJsonObject.toString(1));
 
-            // Set up the objects necessary to make the request.
-            HttpClient httpClient = HttpClientBuilder.create().build();
-
-            HttpPatch httpPatch = new HttpPatch(uri);
-            httpPatch.addHeader(oauthHeader);
-            httpPatch.addHeader(prettyPrintHeader);
-            StringEntity body = new StringEntity(leadJsonObject.toString(1));
-            body.setContentType("application/json");
-            httpPatch.setEntity(body);
-
-            // Make the request
-            HttpResponse httpResponse = httpClient.execute(httpPatch);
+            HttpResponse httpResponse = createOrUpdate(false, uri, leadJsonObject);
 
             // Process the response
             int statusCode = httpResponse.getStatusLine().getStatusCode();
@@ -212,7 +189,7 @@ class Resource {
         } catch (JSONException e) {
             logger.info("Issue creating JSON or processing results");
             e.printStackTrace();
-        } catch (IOException | NullPointerException ioe) {
+        } catch (NullPointerException | IOException ioe) {
             ioe.printStackTrace();
         }
 
@@ -254,6 +231,47 @@ class Resource {
         return exitValue;
     }
 
+    int listAvailableResources() {
+        logger.info("\n_______________ Available REST Resources _______________");
+
+        // String uri = baseUri;
+        // String uri = "https://na75.salesforce.com/services/data/v37.0/sobjects";
+        String uri = "https://na75.salesforce.com/services/data/v37.0/sobjects/Account/0011K0000220GrrQAE";
+
+        try {
+            HttpClient httpClient = HttpClientBuilder.create().build();
+
+            HttpGet httpGet = new HttpGet(uri);
+            httpGet.addHeader(oauthHeader);
+            httpGet.addHeader(prettyPrintHeader);
+
+            // Now make the GET request
+            HttpResponse httpResponse = httpClient.execute(httpGet);
+            int statusCode = httpResponse.getStatusLine().getStatusCode();
+            if (statusCode == 200) {
+                String response_string = EntityUtils.toString(httpResponse.getEntity());
+                try {
+                    JSONObject jsonObject = new JSONObject(response_string);
+                    logger.info("JSON result of available resources query:\n" + jsonObject.toString(1));
+                } catch (JSONException je) {
+                    je.printStackTrace();
+                }
+            } else {
+                logger.info("Listing available resources was unsuccessful. Status code returned is " + statusCode);
+                logger.info("An error has occurred. Http status: " + httpResponse.getStatusLine().getStatusCode());
+                logger.info(getBody(httpResponse.getEntity().getContent()));
+                return exitValue = -1;
+            }
+        } catch (JSONException e) {
+            logger.info("Issue creating JSON or processing results");
+            e.printStackTrace();
+        } catch (IOException | NullPointerException ioe) {
+            ioe.printStackTrace();
+        }
+
+        return exitValue;
+    }
+
     int logout() throws IOException {
         // Setup the HTTP objects needed to make the request
         HttpClient httpClient = HttpClientBuilder.create().build();
@@ -273,50 +291,51 @@ class Resource {
             return exitValue = -1;
         }
 
-        /*
-        String uri = "https://login.salesforce.com/services/oauth2/revoke";
-
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("token", loginAccessToken);
-
-        // Construct the objects needed for the request
-        HttpClient httpClient = HttpClientBuilder.create().build();
-
-        HttpPost httpPost = new HttpPost(uri);
-        // The message we are going to post
-        StringEntity body = new StringEntity(jsonObject.toString(1));
-        body.setContentType("application/x-www-form-urlencoded;charset=utf-8");
-        httpPost.setEntity(body);
-
-        // Make the request
-        HttpResponse httpResponse = httpClient.execute(httpPost);
-
-        // Process the response
-        int statusCode = httpResponse.getStatusLine().getStatusCode();
-        if (statusCode == 200) {
-            logger.info("Logout has been successful.");
-        } else {
-            logger.info("Logout was NOT successful. Status code is " + statusCode);
-            return exitValue = -1;
-        }
-        */
-
         return exitValue;
     }
 
     private String getBody(InputStream inputStream) {
-        String result = "";
+        StringBuilder result = new StringBuilder();
         try {
             BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
             String inputLine;
             while ((inputLine = bufferedReader.readLine()) != null) {
-                result += inputLine;
-                result += "\n";
+                result.append(inputLine);
+                result.append("\n");
             }
             bufferedReader.close();
         } catch (IOException ioe) {
             ioe.printStackTrace();
         }
-        return result;
+        return result.toString();
+    }
+
+    private HttpResponse createOrUpdate(boolean isPost, String uri, JSONObject leadJsonObject) throws IOException {
+        HttpClient httpClient = HttpClientBuilder.create().build();
+        HttpResponse httpResponse;
+
+        StringEntity body = null;
+        try {
+            body = new StringEntity(leadJsonObject.toString(1));
+            body.setContentType("application/json");
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+        }
+
+        if (isPost) {
+            HttpPost httpPost = new HttpPost(uri);
+            httpPost.addHeader(oauthHeader);
+            httpPost.addHeader(prettyPrintHeader);
+            httpPost.setEntity(body);
+            httpResponse = httpClient.execute(httpPost);
+        } else {
+            HttpPatch httpPatch = new HttpPatch(uri);
+            httpPatch.addHeader(oauthHeader);
+            httpPatch.addHeader(prettyPrintHeader);
+            httpPatch.setEntity(body);
+            httpResponse = httpClient.execute(httpPatch);
+        }
+
+        return httpResponse;
     }
 }
